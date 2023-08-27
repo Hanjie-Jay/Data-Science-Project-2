@@ -1,0 +1,85 @@
+
+---
+title: "Monthly Summary Report"
+date: "Generated in  `r format(Sys.time(), '%B, %Y')`"
+output:
+  pdf_document:
+    latex_engine: xelatex
+    number_sections: yes
+geometry: margin=0.75in
+fontsize: 10pt
+header-includes:
+  - \usepackage{caption}
+  - \captionsetup[figure]{font=small}
+classoption: a4paper
+bibliography: references.bib
+css: style.css
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+library(gridExtra)
+library(kableExtra)
+library(tidyverse)
+library(lubridate)
+
+here::i_am("reports/mothly_summary/02242799-monthly-summary.Rmd")
+
+library(here)
+
+# Read the variables generate before into the environment
+source(here::here("scr","global_variables.R"))
+source(here::here("scr","Monthly_report","Mon_rep_data_preprocess.R"))
+source(here::here("scr","Monthly_report","Mon_rep_mc_selection&compare.R"))
+
+# Load the filtered dataset
+filter_data_name <- paste0("last_12_months_", file_name)
+earthquake_tbl_filtered <- readr::read_csv(here::here("data","derived", filter_data_name))
+```
+
+This report summarise the changes from `r end_date %m-% months(1)` to  `r end_date` and use the data from `r start_date` to `r end_date`.
+
+# Selection of $m_c$
+
+We use the Maximum Curvature (MaxC) method to select the value of $m_c$. The MaxC technique (@wyss1999quantitative; @wiemer2000minimum) is a fast and straightforward way to estimate $m_c$. It consists in defining the point of the maximum curvature by computing the maximum value of the first derivative of the frequency-magnitude curve and matching the magnitude bin with the highest frequency of events in the non-cumulative frequency-magnitude distribution.(@mignan2012estimating) Via this method, the $m_c$ value we obtained for this period is $m_c=$ `r mc+0.1` and the histogram of earthquake magnitude of the last 12 months is shown in Figure \ref{fig:s1} below.
+
+```{r, eval = TRUE,echo=FALSE,fig.align = "center",fig.width=5,fig.height=2.5,fig.cap ="\\label{fig:s1}Earthquake Magnitude Histogram of last 12 months" ,fig.pos = 'H', warning = FALSE, message = FALSE}
+plot(magnitude_histogram)
+```
+
+To validate our assumption of earthquake magnitude following an exponential distribution, we carry out a Kolmogorov-Smirnov test on the data values above $m_c$. The test yields a $p$-value of `r ks_test_p_value`, which, being significantly higher than $0.05$, implies a strong similarity between the observed and expected data. Figure \ref{fig:s2} illustrates this comparison via the empirical cumulative distribution function (CDF) and the theoretical CDF for the exponential distribution. The close proximity between these two CDF curves further reaffirms the hypothesis that our data aligns well with the exponential distribution.
+
+```{r, eval = TRUE,echo=FALSE,fig.align = "center",fig.width=4,fig.height=2,fig.cap ="\\label{fig:s2}Comparing the observed ECDF and expected CDF" ,fig.pos = 'H', warning = FALSE, message = FALSE}
+plot(com_cdf_plot)
+```
+
+\clearpage
+
+
+# Compare the earthquake activity of last month and the previous 11 months
+
+There were 3 earthquake activities in the last month, while the average number of earthquake activities in the previous 11 months was 4.27. We plot a bar plot to visualize it as shown in the first plot of Figure \ref{fig:2}. We also plot a box plot and a table to show the overall earthquake magnitude behavior of the two periods as shown in the second plot of Figure \ref{fig:2} and Table \ref{tab:1}. We can observe that the mean magnitude is lower than average behavior, but the median value is higher. The range of the magnitude seems similar to the previous.
+
+```{r fig:2, fig.cap="\\label{fig:2}Comparision plots of counts and magnitude of the last month and previous 11 months", fig.width=6, fig.height=2.5, echo=FALSE, warning = FALSE, message = FALSE}
+grid.arrange(com_count_bar, com_mag_box, ncol = 2)
+```
+
+```{r tab:1, eval = TRUE,echo=FALSE, tab.cap ="\\label{tab:1}"}
+kable(mag_summary_table, format = "latex", booktabs = T, caption = "\\label{tab:1}Comparision plots of counts and magnitude of the last month and previous 11 months") %>%
+  column_spec(1, bold = T) %>%
+  row_spec(0, bold = T) %>%
+  kable_styling(latex_options = "HOLD_position")
+```
+
+
+We also plot the location of the earthquake that happened last month with the location in the previous 11 months, as shown in Figure \ref{fig:c1}. There are two earthquakes that occurred in the same place, and they overlapped. Therefore there are only 2 points shown in the previous month. The earthquake location that happened last month is close to the place that happened in the previous 11 months.
+
+```{r fig:c1, eval = TRUE,echo=FALSE,fig.align = "center",fig.width=4,fig.height=3,fig.cap ="\\label{fig:c1}Comparing the earthquake location of last month and the previous 11 months" ,fig.pos = 'H', warning = FALSE, message = FALSE}
+plot(com_loc_plot)
+```
+
+\clearpage
+
+
+
+# References

@@ -1,0 +1,68 @@
+---
+title: MCMC Storage Guide with Simulation Result
+output:
+  pdf_document:
+    latex_engine: xelatex
+    number_sections: no
+geometry: margin=0.5in
+classoption: a4paper
+header-includes:
+  \usepackage{titling}
+  \setlength{\droptitle}{-1.6cm}
+  \pagenumbering{gobble}
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+library(gridExtra)
+library(kableExtra)
+library(tidyverse)
+library(lubridate)
+
+here::i_am("reports/Guidance/02242799-mcmc-storage-guide.Rmd")
+
+library(here)
+
+# Read the variables generate before into the environment
+source(here::here("scr","Technical_guidance_on_MCMC","simulation_study_with_visualisation.R"))
+
+```
+
+
+\vspace{-0.5cm}
+
+This report is prepared for the statistical seismology team to help them identify the most efficient method for storing $m$ numbers of model parameters $\theta^{(i)}\in\mathbb{R}^p$ for the MCMC. In this report, we conduct two simulation experiments with different values of $m$, while keeping $p=10$, to assess the computational cost of four methods: data-frame row-wise, data-frame column-wise, matrix row-wise, and matrix column-wise.
+
+\vspace{-0.25cm}
+
+# The simulation study using $m=`r m_val`$
+
+To ensure minimal computational time, our approach begins with the testing of lower $m$ values to gauge the performance of the four methodologies. We've designed four distinct functions, each representing one of the methods, that highlight their operations and compute the associated computational costs. In all cases, we assign identical values to $\theta=(\theta_1, \theta_2, \dots, \theta_p)$ as a means of controlling the variables. These methods are evaluated `r iter_num` times, with the first graph of Figure \ref{fig:1} showcasing the average and median times for each method. Furthermore, Table \ref{tab:1} presents the running time statistics (in `r unit`) for each method executed `r iter_num` times. From our analysis, the top two methods that effectively minimise the mean computational time are `r best_two_methods$Method[1]` and `r best_two_methods$Method[2]`.
+
+```{r, eval = TRUE,echo=FALSE,fig.align = "center",fig.width=6,fig.height=2.5,fig.cap ="\\label{fig:1}The average and median running time of the mathods selected" ,fig.pos = 'H', warning = FALSE, message = FALSE}
+grid.arrange(mean_median_plot, mean_median_plot_2, ncol = 2)
+```
+\vspace{-0.25cm}
+```{r tab:1, eval = TRUE,echo=FALSE, tab.cap ="\\label{tab:1}"}
+kable(summary_simu_results_df, format = "latex", booktabs = T, caption = "\\label{tab:1} Statistics of the running time in millisecond for each method") %>%
+  column_spec(1, bold = T) %>%
+  row_spec(0, bold = T) %>%
+  kable_styling(latex_options = "HOLD_position")
+```
+\vspace{-0.5cm}
+
+We conducted an in-depth analysis of the computation time breakdown for each method using the `profvis` package. Our results highlight that the increased computation times for both row-wise and column-wise data-frame methods are chiefly attributable to the extended duration needed to assign values to the data frame. This is in contrast with the comparatively swift assignment to the matrix. Furthermore, the functions used to transpose the data frame/matrix and to convert a matrix into a data frame proved highly efficient, requiring only a minimal portion of the overall processing time.
+
+
+\vspace{-0.25cm}
+
+# Further Simulation Study with $m=`r m_val_2`$
+
+We proceed with our simulation study by focusing on the top-two-performing methods, specifically `r best_two_methods$Method[1]` and `r best_two_methods$Method[2]`. In this phase, we simulate the assignment process with $m=`r m_val_2`$ and $p=`r p_val_2`$, utilising only these two superior methods. The resulting average and median times for both methods in `r iter_num_2` simulations are visualised in the second graph of Figure \ref{fig:1}. Upon inspection, it's evident that the computation time significantly increases compared to when using $m=`r m_val`$. However, the `r best_approach` method consistently shows the least computational time.
+
+\vspace{-0.25cm}
+
+# Recommended Approach
+
+Drawing on the insights garnered from our simulation study, we advocate for the use of the row-wise matrix method to store $\theta$ values. This process entails the creation of an $m \times p$ matrix initially filled with NA values. Fill each row in a sequential order and subsequently convert the filled matrix into a data frame.
+
